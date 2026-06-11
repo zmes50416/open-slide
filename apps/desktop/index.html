@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>open-slide</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <header class="console">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">open-slide</span>
+        <span class="brand-tag">desktop</span>
+      </div>
+
+      <div class="folder" id="folder" title="">
+        <span class="folder-label">dir</span>
+        <span class="folder-path" id="folder-path">resolving…</span>
+      </div>
+
+      <div class="agent-zone">
+        <span class="status" id="status" role="status"></span>
+        <div class="agent-controls" id="agent-controls" hidden>
+          <label class="agent-label" for="agent-select">agent</label>
+          <select id="agent-select" aria-label="Detected coding agents"></select>
+          <button type="button" class="launch" id="launch">
+            Launch here
+          </button>
+        </div>
+        <span class="no-agents" id="no-agents" hidden>no coding agent found on this machine</span>
+        <button type="button" class="rescan" id="rescan" title="Rescan for installed agents" aria-label="Rescan for installed agents">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+            <path d="M13.5 8a5.5 5.5 0 1 1-1.61-3.89" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M13.7 1.6v3h-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="veil" id="veil">
+        <p class="veil-text" id="veil-text">warming up the slide server</p>
+        <div class="hairline"><span class="hairline-bar"></span></div>
+      </div>
+      <iframe id="slides" title="Slides" allow="fullscreen"></iframe>
+    </main>
+  </body>
+</html>
