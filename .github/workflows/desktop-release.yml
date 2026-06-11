@@ -3,6 +3,8 @@ name: Desktop Release
 on:
   workflow_dispatch:
   push:
+    branches:
+      - desktop-release
     tags:
       - "desktop-v*"
 
