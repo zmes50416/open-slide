@@ -14,7 +14,7 @@ pnpm + Turbo monorepo.
 | `packages/cli` | `@open-slide/cli` | `npx @open-slide/cli init` scaffolder + project template. |
 | `apps/demo` | private | Local consumer of `@open-slide/core` via `workspace:*`. Dogfood target — run `pnpm dev` here to exercise the framework. |
 | `apps/web` | private | Marketing site (Next.js). |
-| `apps/desktop` | private | Tauri shell around the demo; detects local coding agents (Rust side) and launches them in the project folder. Run with `pnpm dev:desktop`. |
+| `apps/desktop` | private | Tauri shell: picks/inits a slide project (via `npx @open-slide/cli init`), runs its dev server, detects local coding agents (Rust side) and launches them in the project folder. Run with `pnpm dev:desktop`. |
 
 Shared config: `biome.json`, `turbo.json`, `pnpm-workspace.yaml`, `tsconfig` per package.
 

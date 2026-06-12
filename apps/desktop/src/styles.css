@@ -13,6 +13,13 @@
   box-sizing: border-box;
 }
 
+/* Sections with explicit display rules would otherwise override [hidden]. */
+.first-run[hidden],
+.agent-controls[hidden],
+.folder-change[hidden] {
+  display: none;
+}
+
 html,
 body {
   height: 100%;
@@ -252,6 +259,78 @@ iframe.ready {
   margin: 0;
   color: var(--cream-dim);
   letter-spacing: 0.08em;
+}
+
+.veil-detail {
+  margin: 0;
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #6e6354;
+}
+
+.folder-change {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--hairline);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--cream-dim);
+  cursor: pointer;
+  align-self: center;
+  transition: color 0.15s;
+}
+
+.folder-change:hover {
+  color: var(--cream);
+}
+
+.first-run {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  text-align: center;
+}
+
+.first-run-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+}
+
+.first-run-copy {
+  margin: 0;
+  max-width: 460px;
+  line-height: 1.7;
+  color: var(--cream-dim);
+}
+
+.first-run-copy code {
+  color: var(--amber);
+  font-family: inherit;
+}
+
+.first-run-choose {
+  padding: 8px 18px;
+  font-size: 13px;
+}
+
+.first-run-error {
+  margin: 0;
+  max-width: 520px;
+  color: #e2654e;
+  line-height: 1.6;
 }
 
 .hairline {

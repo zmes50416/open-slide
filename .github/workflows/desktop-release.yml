@@ -61,9 +61,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build core
-        run: pnpm core build
-
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -73,12 +70,17 @@ jobs:
           tagName: desktop-v__VERSION__
           releaseName: "open-slide desktop v__VERSION__"
           releaseBody: |
-            Desktop shell for open-slide: the demo slide deck in a native window,
-            with local coding agent detection and one-click launch in the project folder.
+            Desktop shell for open-slide. On first launch it asks where your slide
+            project should live, initializes it with `npx @open-slide/cli init` if
+            needed, runs the project's dev server, and shows it in the window —
+            with local coding agent detection and one-click launch in that folder.
 
-            Downloads are unsigned. On macOS, right-click the app and choose Open the
-            first time (or run `xattr -cr /Applications/open-slide.app`). On Windows,
-            click "More info" → "Run anyway" in SmartScreen.
+            Requires Node.js on your machine.
+
+            Downloads are unsigned. On macOS run
+            `xattr -cr /Applications/open-slide.app` once after installing
+            (Gatekeeper otherwise reports the app as damaged). On Windows, click
+            "More info" → "Run anyway" in SmartScreen.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

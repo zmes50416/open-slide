@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 interface DetectedAgent {
   id: string;
@@ -6,10 +7,14 @@ interface DetectedAgent {
   path: string;
 }
 
-const SLIDES_URL = import.meta.env.DEV ? 'http://localhost:5173/' : '/slides/index.html';
+interface ChosenFolder {
+  path: string;
+  isProject: boolean;
+}
 
 const folderPath = document.getElementById('folder-path') as HTMLSpanElement;
 const folderBox = document.getElementById('folder') as HTMLDivElement;
+const changeFolderButton = document.getElementById('change-folder') as HTMLButtonElement;
 const agentControls = document.getElementById('agent-controls') as HTMLDivElement;
 const agentSelect = document.getElementById('agent-select') as HTMLSelectElement;
 const launchButton = document.getElementById('launch') as HTMLButtonElement;
@@ -19,8 +24,13 @@ const status = document.getElementById('status') as HTMLSpanElement;
 const iframe = document.getElementById('slides') as HTMLIFrameElement;
 const veil = document.getElementById('veil') as HTMLDivElement;
 const veilText = document.getElementById('veil-text') as HTMLParagraphElement;
+const veilDetail = document.getElementById('veil-detail') as HTMLParagraphElement;
+const firstRun = document.getElementById('first-run') as HTMLElement;
+const chooseFolderButton = document.getElementById('choose-folder') as HTMLButtonElement;
+const firstRunError = document.getElementById('first-run-error') as HTMLParagraphElement;
 
 let statusTimer: ReturnType<typeof setTimeout> | undefined;
+let starting = false;
 
 function showStatus(message: string, kind: 'ok' | 'error') {
   clearTimeout(statusTimer);
@@ -33,15 +43,30 @@ function showStatus(message: string, kind: 'ok' | 'error') {
   }, 6000);
 }
 
-async function loadFolder() {
-  try {
-    const folder = await invoke<string>('get_project_folder');
-    folderPath.textContent = folder;
-    folderBox.title = folder;
-  } catch (error) {
-    folderPath.textContent = 'unavailable';
-    folderBox.title = String(error);
-  }
+function setFolder(path: string | null) {
+  folderPath.textContent = path ?? '—';
+  folderBox.title = path ?? '';
+  changeFolderButton.hidden = path === null;
+}
+
+function showVeil(text: string) {
+  firstRun.hidden = true;
+  veil.classList.remove('hidden');
+  veilText.textContent = text;
+  veilDetail.textContent = '';
+}
+
+function hideVeil() {
+  veil.classList.add('hidden');
+}
+
+function showFirstRun(error?: string) {
+  hideVeil();
+  iframe.classList.remove('ready');
+  iframe.removeAttribute('src');
+  firstRun.hidden = false;
+  firstRunError.hidden = !error;
+  firstRunError.textContent = error ?? '';
 }
 
 async function scanAgents() {
@@ -84,40 +109,91 @@ async function launchAgent() {
   }
 }
 
-async function slidesReachable(): Promise<boolean> {
+async function devServerReachable(port: number): Promise<boolean> {
   try {
-    await fetch(SLIDES_URL, { mode: 'no-cors', cache: 'no-store' });
+    await fetch(`http://localhost:${port}/`, { mode: 'no-cors', cache: 'no-store' });
     return true;
   } catch {
     return false;
   }
 }
 
-async function mountSlides() {
-  if (import.meta.env.DEV) {
+async function startProject() {
+  if (starting) return;
+  starting = true;
+  try {
+    showVeil('starting the slide dev server');
+    const port = await invoke<number>('start_dev_server');
     let attempts = 0;
-    while (!(await slidesReachable())) {
+    while (!(await devServerReachable(port))) {
       attempts += 1;
-      if (attempts === 20) {
-        veilText.textContent = 'still waiting for the dev server on :5173';
+      if (attempts > 240) {
+        throw new Error(`The dev server did not come up on port ${port}.`);
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
+    iframe.classList.remove('ready');
+    iframe.addEventListener(
+      'load',
+      () => {
+        iframe.classList.add('ready');
+        hideVeil();
+      },
+      { once: true },
+    );
+    iframe.src = `http://localhost:${port}/`;
+  } catch (error) {
+    showFirstRun(String(error));
+  } finally {
+    starting = false;
   }
-  iframe.addEventListener(
-    'load',
-    () => {
-      iframe.classList.add('ready');
-      veil.classList.add('hidden');
-    },
-    { once: true },
-  );
-  iframe.src = SLIDES_URL;
+}
+
+async function chooseFolder() {
+  chooseFolderButton.disabled = true;
+  changeFolderButton.disabled = true;
+  try {
+    const chosen = await invoke<ChosenFolder | null>('choose_project_folder');
+    if (!chosen) return;
+    setFolder(chosen.path);
+    if (!chosen.isProject) {
+      showVeil('initializing your slide project');
+      await invoke('init_project');
+      showStatus('starter project created', 'ok');
+    }
+    await startProject();
+  } catch (error) {
+    showFirstRun(String(error));
+  } finally {
+    chooseFolderButton.disabled = false;
+    changeFolderButton.disabled = false;
+  }
+}
+
+async function boot() {
+  listen<string>('setup-log', (event) => {
+    veilDetail.textContent = event.payload;
+  });
+  listen<string>('dev-log', (event) => {
+    if (!veil.classList.contains('hidden')) {
+      veilDetail.textContent = event.payload;
+    }
+  });
+
+  scanAgents();
+
+  const folder = await invoke<string | null>('get_project_folder');
+  setFolder(folder);
+  if (folder === null) {
+    showFirstRun();
+    return;
+  }
+  await startProject();
 }
 
 launchButton.addEventListener('click', launchAgent);
 rescanButton.addEventListener('click', scanAgents);
+chooseFolderButton.addEventListener('click', chooseFolder);
+changeFolderButton.addEventListener('click', chooseFolder);
 
-loadFolder();
-scanAgents();
-mountSlides();
+boot();

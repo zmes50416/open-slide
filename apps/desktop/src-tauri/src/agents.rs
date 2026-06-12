@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::toolchain::executable_in_dir;
+
 struct KnownAgent {
     id: &'static str,
     name: &'static str,
@@ -9,13 +11,41 @@ struct KnownAgent {
 }
 
 const KNOWN_AGENTS: &[KnownAgent] = &[
-    KnownAgent { id: "claude", name: "Claude Code", binary: "claude" },
-    KnownAgent { id: "codex", name: "Codex CLI", binary: "codex" },
-    KnownAgent { id: "gemini", name: "Gemini CLI", binary: "gemini" },
-    KnownAgent { id: "copilot", name: "Copilot CLI", binary: "copilot" },
-    KnownAgent { id: "cursor-agent", name: "Cursor Agent", binary: "cursor-agent" },
-    KnownAgent { id: "opencode", name: "opencode", binary: "opencode" },
-    KnownAgent { id: "aider", name: "Aider", binary: "aider" },
+    KnownAgent {
+        id: "claude",
+        name: "Claude Code",
+        binary: "claude",
+    },
+    KnownAgent {
+        id: "codex",
+        name: "Codex CLI",
+        binary: "codex",
+    },
+    KnownAgent {
+        id: "gemini",
+        name: "Gemini CLI",
+        binary: "gemini",
+    },
+    KnownAgent {
+        id: "copilot",
+        name: "Copilot CLI",
+        binary: "copilot",
+    },
+    KnownAgent {
+        id: "cursor-agent",
+        name: "Cursor Agent",
+        binary: "cursor-agent",
+    },
+    KnownAgent {
+        id: "opencode",
+        name: "opencode",
+        binary: "opencode",
+    },
+    KnownAgent {
+        id: "aider",
+        name: "Aider",
+        binary: "aider",
+    },
 ];
 
 #[derive(Serialize, Clone)]
@@ -69,47 +99,6 @@ fn home_dir() -> Option<PathBuf> {
     std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from)
-}
-
-#[cfg(windows)]
-fn executable_in_dir(dir: &Path, name: &str) -> Option<PathBuf> {
-    ["exe", "cmd", "bat", "com"].iter().find_map(|ext| {
-        let candidate = dir.join(format!("{name}.{ext}"));
-        candidate.is_file().then_some(candidate)
-    })
-}
-
-#[cfg(not(windows))]
-fn executable_in_dir(dir: &Path, name: &str) -> Option<PathBuf> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let candidate = dir.join(name);
-    match candidate.metadata() {
-        Ok(meta) if meta.is_file() && meta.permissions().mode() & 0o111 != 0 => Some(candidate),
-        _ => None,
-    }
-}
-
-pub fn project_folder() -> Result<PathBuf, String> {
-    if let Some(dir) = std::env::var_os("OPEN_SLIDE_PROJECT_DIR") {
-        let dir = PathBuf::from(dir);
-        return dir
-            .canonicalize()
-            .map_err(|err| format!("OPEN_SLIDE_PROJECT_DIR is not accessible: {err}"));
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        let demo = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..")
-            .join("demo");
-        if let Ok(demo) = demo.canonicalize() {
-            return Ok(demo);
-        }
-    }
-
-    std::env::current_dir().map_err(|err| format!("Could not resolve a project folder: {err}"))
 }
 
 #[cfg(target_os = "macos")]
@@ -183,19 +172,52 @@ pub fn launch_in_terminal(agent_path: &Path, dir: &Path) -> Result<(), String> {
     let candidates: Vec<(&str, Vec<String>)> = vec![
         (
             "gnome-terminal",
-            vec![format!("--working-directory={dir_s}"), "--".into(), agent.clone()],
+            vec![
+                format!("--working-directory={dir_s}"),
+                "--".into(),
+                agent.clone(),
+            ],
         ),
-        ("konsole", vec!["--workdir".into(), dir_s.clone(), "-e".into(), agent.clone()]),
+        (
+            "konsole",
+            vec![
+                "--workdir".into(),
+                dir_s.clone(),
+                "-e".into(),
+                agent.clone(),
+            ],
+        ),
         (
             "xfce4-terminal",
-            vec![format!("--working-directory={dir_s}"), "-x".into(), agent.clone()],
+            vec![
+                format!("--working-directory={dir_s}"),
+                "-x".into(),
+                agent.clone(),
+            ],
         ),
-        ("kitty", vec!["--directory".into(), dir_s.clone(), agent.clone()]),
+        (
+            "kitty",
+            vec!["--directory".into(), dir_s.clone(), agent.clone()],
+        ),
         (
             "alacritty",
-            vec!["--working-directory".into(), dir_s.clone(), "-e".into(), agent.clone()],
+            vec![
+                "--working-directory".into(),
+                dir_s.clone(),
+                "-e".into(),
+                agent.clone(),
+            ],
         ),
-        ("wezterm", vec!["start".into(), "--cwd".into(), dir_s.clone(), "--".into(), agent.clone()]),
+        (
+            "wezterm",
+            vec![
+                "start".into(),
+                "--cwd".into(),
+                dir_s.clone(),
+                "--".into(),
+                agent.clone(),
+            ],
+        ),
         ("foot", vec![agent.clone()]),
         ("x-terminal-emulator", vec!["-e".into(), agent.clone()]),
         ("xterm", vec!["-e".into(), agent.clone()]),

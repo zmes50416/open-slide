@@ -7,8 +7,6 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "dev:servers": "node scripts/dev-servers.mjs",
-    "build:frontend": "vite build && node scripts/bundle-slides.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
