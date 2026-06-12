@@ -53,6 +53,22 @@ fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+fn real_node_path(node: &PathBuf) -> Option<PathBuf> {
+    let mut command = std::process::Command::new(node);
+    command.args(["-p", "process.execPath"]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let output = command.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let path = PathBuf::from(String::from_utf8(output.stdout).ok()?.trim());
+    path.is_file().then_some(path)
+}
+
 pub struct NodeToolchain {
     pub node: PathBuf,
     pub npx: PathBuf,
@@ -68,6 +84,10 @@ pub fn find_node() -> Result<NodeToolchain, String> {
         .ok_or_else(|| {
             "Node.js was not found on this machine. Install it from https://nodejs.org and try again.".to_string()
         })?;
+    // Version-manager shims (volta, fnm) wrap the real binary in a child
+    // process, which would survive `Child::kill` on the dev server. Resolve
+    // to the real executable so the spawned process tree is just one node.
+    let node = real_node_path(&node).unwrap_or(node);
     let node_dir = node
         .parent()
         .expect("executable has a parent")
